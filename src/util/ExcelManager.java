@@ -6,15 +6,13 @@ import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.nio.file.NoSuchFileException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class ExcelManager {
     private TextArea logArea;
@@ -29,7 +27,7 @@ public class ExcelManager {
         progressbar.setProgress(0.0);
     }
 
-    public void read(String filePath, RowReader rowProcessor) throws Exception {
+    private void read(String filePath, RowReader rowProcessor) throws Exception {
 
         printLog("엑셀 파일을 읽는 중 입니다..." + filePath);
         printLog("\t시트를 읽습니다.");
@@ -38,22 +36,23 @@ public class ExcelManager {
         FileInputStream fis = new FileInputStream(filePath);
         Workbook workbook = getExtension(filePath).equals("xls") ? new HSSFWorkbook(fis) : new XSSFWorkbook(fis);
 
-        int rowindex = 0;
-        int columnindex = 0;
+        int rowIndex;
 
         //시트 수 (첫번째에만 존재하므로 0을 준다)
         //만약 각 시트를 읽기위해서는 FOR문을 한번더 돌려준다
         Sheet sheet = workbook.getSheetAt(0);
         //행의 수
         int rows = sheet.getPhysicalNumberOfRows();
-        for (rowindex = 1; rowindex < rows; rowindex++) {
+        for (rowIndex = 1; rowIndex < rows; rowIndex++) {
             //행을 읽는다
-            Row row = sheet.getRow(rowindex);
+            Row row = sheet.getRow(rowIndex);
 
-            printLog("\t\t" + (rows - 1) + " 중 " + rowindex + "번 행을 읽고 있습니다.");
+//            printLog("\t\t" + (rows - 1) + " 중 " + rowIndex + "번 행을 읽고 있습니다.");
+            updateProgress((double) (rowIndex + 1) / rows);
             rowProcessor.processing(row, sheet);
         }
 
+        fis.close();
         printLog("엑셀 파일을 성공적으로 읽었습니다...");
     }
 
@@ -106,8 +105,9 @@ public class ExcelManager {
                     resultCodeMap.put(extractStringValue(row.getCell(0)), extractStringValue(row.getCell(7)));
                 }
             }
-
         });
+
+        System.out.println(resultCodeMap);
         printLog("엑셀 파일을 성공적으로 읽었습니다...");
 
         return resultCodeMap;
@@ -129,8 +129,7 @@ public class ExcelManager {
         styleOfColor.setFillForegroundColor(IndexedColors.PALE_BLUE.getIndex());
         styleOfColor.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 
-        int rowindex = 0;
-        int columnindex = 0;
+        int rowIndex;
 
         printLog("\t시트를 읽습니다.");
 
@@ -139,11 +138,11 @@ public class ExcelManager {
         Sheet sheet = workbook.getSheetAt(0);
         //행의 수
         int rows = sheet.getPhysicalNumberOfRows();
-        for (rowindex = 1; rowindex < rows; rowindex++) {
-//            printLog("\t\t" + (rows - 1) + " 중 " + rowindex + "번 행을 읽고 있습니다.");
-            updateProgress((double) (rowindex + 1) / rows);
+        for (rowIndex = 1; rowIndex < rows; rowIndex++) {
+//            printLog("\t\t" + (rows - 1) + " 중 " + rowIndex + "번 행을 읽고 있습니다.");
+            updateProgress((double) (rowIndex + 1) / rows);
             //행을 읽는다
-            Row row = sheet.getRow(rowindex);
+            Row row = sheet.getRow(rowIndex);
 
             Cell cellProductCode = row.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
             Cell cellProductName = row.getCell(2);
@@ -152,8 +151,8 @@ public class ExcelManager {
             String value = codeMap.get(key);
 
             if (value != null) {
-                cellProductCode.setCellValue(value);
                 cellProductCode.setCellStyle(styleOfColor);
+                cellProductCode.setCellValue(value);
                 printLog("\t상품 : " + key + ", 코드 : " + value + "로 변경되었습니다.");
             }
         }
@@ -167,12 +166,14 @@ public class ExcelManager {
             printLog(e.getLocalizedMessage());
             printLog("엑셀 쓰기에 실패했습니다...");
             return;
+        } finally {
+            fis.close();
         }
 
         printLog("엑셀 파일을 성공적으로 읽었습니다...");
     }
 
-    public String getExtension(String filePath) throws NoSuchFileException {
+    private String getExtension(String filePath) throws NoSuchFileException {
         // 파일 확장자 확인
         if (filePath.lastIndexOf('.') <= 0) {
             printLog("** 잘못된 파일입니다. **");
@@ -182,15 +183,13 @@ public class ExcelManager {
         return filePath;
     }
 
-    public void printLog(String log) {
+    private void printLog(String log) {
         if (logArea != null) {
-            Platform.runLater(() -> {
-                logArea.appendText(log + "\n");
-            });
+            Platform.runLater(() -> logArea.appendText(log + "\n"));
         }
     }
 
-    public void updateProgress(Double progress) {
+    private void updateProgress(Double progress) {
         if (progressBar != null) {
             Platform.runLater(() -> {
                 progressBar.setProgress(progress);
@@ -206,8 +205,9 @@ public class ExcelManager {
         //타겟 파일(쇼핑몰재고)을 읽기위해 엑셀파일을 가져온다
         Workbook targetWorkbook;
 
+        FileInputStream fis;
         try {
-            FileInputStream fis = new FileInputStream(target);
+            fis = new FileInputStream(target);
             targetWorkbook = getExtension(target).equals("xls") ? new HSSFWorkbook(fis) : new XSSFWorkbook(fis);
         } catch (Exception e) {
             printLog(e.getLocalizedMessage());
@@ -221,7 +221,7 @@ public class ExcelManager {
         Workbook unregisteredWorkbook = new XSSFWorkbook();
         Sheet unregSheet = unregisteredWorkbook.createSheet();
 
-        int rowindex = 0;
+        int rowIndex;
 
         //시트 수 (첫번째에만 존재하므로 0을 준다)
         Sheet sheet = targetWorkbook.getSheetAt(0);
@@ -234,17 +234,19 @@ public class ExcelManager {
 
         //행의 수
         int rows = sheet.getPhysicalNumberOfRows();
-        for (rowindex = 1; rowindex < rows; rowindex++) {
-//            printLog("\t\t" + (rows - 1) + " 중 " + rowindex + "번 행을 읽고 있습니다.");
-            updateProgress((double) (rowindex + 1) / rows);
+        for (rowIndex = 1; rowIndex < rows; rowIndex++) {
+//            printLog("\t\t" + (rows - 1) + " 중 " + rowIndex + "번 행을 읽고 있습니다.");
+            updateProgress((double) (rowIndex + 1) / rows);
             //행을 읽는다
-            Row row = sheet.getRow(rowindex);
+            Row row = sheet.getRow(rowIndex);
 
             Cell cellProductCode = row.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
             Cell cellQuantity = row.getCell(2);
 
             String key =  extractStringValue(cellProductCode);
             String value = codeToQuantity.get(key);
+
+            System.out.println(key);
 
             if (value != null) {
                 copyRow(sheet, row,
@@ -278,6 +280,7 @@ public class ExcelManager {
             FileOutputStream fileOutputStream = new FileOutputStream(savePath);
             unregisteredWorkbook.write(fileOutputStream);
             fileOutputStream.close();
+            fis.close();
             printLog("\t" + savePath + " 작성했습니다...");
         } catch (Exception e) {
             printLog(e.getLocalizedMessage());
@@ -299,13 +302,17 @@ public class ExcelManager {
 
             // If the old cell is null jump to next cell
             if (oldCell == null) {
-                newCell = null;
                 continue;
             }
 
             // Copy style from old cell and apply to new cell
-            CellStyle newCellStyle = unregisteredWorkbook.createCellStyle();
-            newCellStyle.cloneStyleFrom(oldCell.getCellStyle());
+            CellStyle newCellStyle = unregisteredWorkbook.getCellStyleAt(i);
+
+            if (newCellStyle == null) {
+                newCellStyle = unregisteredWorkbook.createCellStyle();
+                newCellStyle.cloneStyleFrom(oldCell.getCellStyle());
+            }
+
             newCell.setCellStyle(newCellStyle);
 
             // If there is a cell comment, copy
@@ -354,7 +361,7 @@ public class ExcelManager {
                 value = cell.getCellFormula();
                 break;
             case NUMERIC:
-                value = cell.getNumericCellValue() + "";
+                value = (new BigDecimal(cell.getNumericCellValue()).toPlainString());
                 break;
             case STRING:
                 value = cell.getStringCellValue() + "";
