@@ -15,6 +15,13 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class ExcelManager {
+    private final int STOCK_CODE_COLUMN = 1;
+    private final int STOCK_NAME_COLUMN = 2;
+    private final int STOCK_QUANTITY_COLUMN = 4;
+    private final int ORIGINAL_CODE_COLUMN = 0;
+    private final int ORIGINAL_QUANTITY_COLUMN = 7;
+    private final int ORIGINAL_NAME_COLUMN = 1;
+
     private TextArea logArea;
     private ProgressBar progressBar;
     private Label progressText;
@@ -73,12 +80,11 @@ public class ExcelManager {
         Map<String, String> resultCodeMap = new HashMap<>();
 
         read(codeFilePath, (row, sheet) -> {
-            int columnindex = 0;
             if (row != null) {
                 int cells = row.getPhysicalNumberOfCells();
                 //셀의 수
                 if (cells >= 2) {
-                    resultCodeMap.put(extractStringValue(row.getCell(1)), extractStringValue(row.getCell(0)));
+                    resultCodeMap.put(extractStringValue(row.getCell(ORIGINAL_NAME_COLUMN)), extractStringValue(row.getCell(ORIGINAL_CODE_COLUMN)));
                 }
             }
         });
@@ -96,13 +102,13 @@ public class ExcelManager {
                 //셀의 수
                 int cells = row.getPhysicalNumberOfCells();
                 if (cells >= 2) {
-                    Cell codeCell = row.getCell(0);
-                    Cell quantityCell = row.getCell(7);
+                    Cell codeCell = row.getCell(ORIGINAL_CODE_COLUMN);
+                    Cell quantityCell = row.getCell(ORIGINAL_QUANTITY_COLUMN);
 
                     if (codeCell.getCellTypeEnum() == CellType.BLANK ||
                             codeCell.getCellTypeEnum() == CellType.ERROR) return;
 
-                    resultCodeMap.put(extractStringValue(row.getCell(0)), extractStringValue(row.getCell(7)));
+                    resultCodeMap.put(extractStringValue(codeCell), extractStringValue(quantityCell));
                 }
             }
         });
@@ -125,7 +131,7 @@ public class ExcelManager {
         // 정렬
         styleOfColor.setAlignment(HorizontalAlignment.CENTER); //가운데 정렬
         // 배경색
-        styleOfColor.setFillForegroundColor(IndexedColors.PALE_BLUE.getIndex());
+        styleOfColor.setFillForegroundColor(IndexedColors.RED.getIndex());
         styleOfColor.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 
         int rowIndex;
@@ -143,8 +149,8 @@ public class ExcelManager {
             //행을 읽는다
             Row row = sheet.getRow(rowIndex);
 
-            Cell cellProductCode = row.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-            Cell cellProductName = row.getCell(2);
+            Cell cellProductCode = row.getCell(STOCK_CODE_COLUMN, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+            Cell cellProductName = row.getCell(STOCK_NAME_COLUMN);
 
             String key = cellProductName.getStringCellValue();
             String value = codeMap.get(key);
@@ -156,7 +162,16 @@ public class ExcelManager {
             }
         }
 
-        printLog(stockPath + " 파일에 성공적으로 코드를 추가했습니다...");
+        try {
+            FileOutputStream fileOutputStream = new FileOutputStream(stockPath);
+            workbook.write(fileOutputStream);
+            fileOutputStream.close();
+            printLog(stockPath + " 파일에 성공적으로 코드를 추가했습니다...");
+        } catch (Exception e) {
+            printLog(e.getLocalizedMessage());
+            printLog("\t반영재고파일 엑셀 쓰기에 실패했습니다...");
+        }
+
     }
 
     private String getExtension(String filePath) throws NoSuchFileException {
@@ -211,6 +226,10 @@ public class ExcelManager {
 
         //시트 수 (첫번째에만 존재하므로 0을 준다)
         Sheet targetSheet = targetWorkbook.getSheetAt(0);
+        CellStyle backgroundColorGreen = targetWorkbook.createCellStyle();
+
+        backgroundColorGreen.setFillForegroundColor(IndexedColors.GREEN.getIndex());
+        backgroundColorGreen.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 
         // 미등록시트 헤더행 생성
         copyRow(targetSheet, targetSheet.getRow(0),
@@ -226,12 +245,12 @@ public class ExcelManager {
             //행을 읽는다
             Row row = targetSheet.getRow(rowIndex);
 
-            Cell cellProductCode = row.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+            Cell cellProductCode = row.getCell(STOCK_CODE_COLUMN, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
             String key =  extractStringValue(cellProductCode);
             String value = codeToQuantity.get(key);
 
-            String beforeValue = extractStringValue(row.getCell(4));
+            String beforeValue = extractStringValue(row.getCell(STOCK_QUANTITY_COLUMN));
 
             if (value == null) {
                 copyRow(targetSheet, row,
@@ -239,19 +258,19 @@ public class ExcelManager {
             } else if (value.equals(beforeValue)) {
                 printLog("\t상품 : " + key + ", 재고 : " + value + "로 변동이 없습니다.");
 
-                for (int columnIndex = 0; columnIndex < row.getLastCellNum(); columnIndex++) {
-                    Cell aCell = row.getCell(columnIndex);
+                CellStyle style = cellProductCode.getCellStyle();
 
-                    if (aCell != null) {
-                        CellStyle style = aCell.getCellStyle();
-                        style.setFillForegroundColor(IndexedColors.GREEN.getIndex());
-                        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-                    }
+                if (style == null) {
+                    cellProductCode.setCellStyle(backgroundColorGreen);
+                } else {
+                    style.setFillForegroundColor(IndexedColors.GREEN.getIndex());
+                    style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                    cellProductCode.setCellStyle(style);
                 }
             } else {
                 copyRow(targetSheet, row,
                         newWorkbook, newSheet.createRow(newSheet.getPhysicalNumberOfRows()));
-                newSheet.getRow(newSheet.getLastRowNum()).getCell(4).setCellValue(value);
+                newSheet.getRow(newSheet.getLastRowNum()).getCell(STOCK_QUANTITY_COLUMN).setCellValue(value);
                 printLog("\t상품 : " + key + ", 재고 : " + value + "로 변경되었습니다.");
             }
         }
