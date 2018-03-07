@@ -107,15 +107,14 @@ public class ExcelManager {
             }
         });
 
-        System.out.println(resultCodeMap);
         printLog("엑셀 파일을 성공적으로 읽었습니다...");
 
         return resultCodeMap;
     }
 
-    public void writeCodeFile(Map<String, String> codeMap, String stockPath, String savePath) throws Exception {
+    public void writeCodeFile(Map<String, String> codeMap, String stockPath) throws Exception {
 
-        printLog("엑셀 파일을 읽는 중 입니다..." + savePath);
+        printLog("엑셀 파일을 읽는 중 입니다..." + stockPath);
 
         //파일을 읽기위해 엑셀파일을 가져온다
         FileInputStream fis = new FileInputStream(stockPath);
@@ -157,20 +156,7 @@ public class ExcelManager {
             }
         }
 
-        try {
-            FileOutputStream fileOutputStream = new FileOutputStream(savePath);
-            workbook.write(fileOutputStream);
-            fileOutputStream.close();
-            printLog("\t" + savePath + " 작성했습니다...");
-        } catch (FileNotFoundException e) {
-            printLog(e.getLocalizedMessage());
-            printLog("엑셀 쓰기에 실패했습니다...");
-            return;
-        } finally {
-            fis.close();
-        }
-
-        printLog("엑셀 파일을 성공적으로 읽었습니다...");
+        printLog(stockPath + " 파일에 성공적으로 코드를 추가했습니다...");
     }
 
     private String getExtension(String filePath) throws NoSuchFileException {
@@ -224,43 +210,54 @@ public class ExcelManager {
         int rowIndex;
 
         //시트 수 (첫번째에만 존재하므로 0을 준다)
-        Sheet sheet = targetWorkbook.getSheetAt(0);
+        Sheet targetSheet = targetWorkbook.getSheetAt(0);
 
         // 미등록시트 헤더행 생성
-        copyRow(sheet, sheet.getRow(0),
+        copyRow(targetSheet, targetSheet.getRow(0),
                 newWorkbook, newSheet.createRow(newSheet.getPhysicalNumberOfRows()));
-        copyRow(sheet, sheet.getRow(0),
+        copyRow(targetSheet, targetSheet.getRow(0),
                 unregisteredWorkbook, unregSheet.createRow(unregSheet.getPhysicalNumberOfRows()));
 
         //행의 수
-        int rows = sheet.getPhysicalNumberOfRows();
+        int rows = targetSheet.getPhysicalNumberOfRows();
         for (rowIndex = 1; rowIndex < rows; rowIndex++) {
 //            printLog("\t\t" + (rows - 1) + " 중 " + rowIndex + "번 행을 읽고 있습니다.");
             updateProgress((double) (rowIndex + 1) / rows);
             //행을 읽는다
-            Row row = sheet.getRow(rowIndex);
+            Row row = targetSheet.getRow(rowIndex);
 
             Cell cellProductCode = row.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-            Cell cellQuantity = row.getCell(2);
 
             String key =  extractStringValue(cellProductCode);
             String value = codeToQuantity.get(key);
 
-            System.out.println(key);
+            String beforeValue = extractStringValue(row.getCell(4));
 
-            if (value != null) {
-                copyRow(sheet, row,
-                        newWorkbook, newSheet.createRow(newSheet.getPhysicalNumberOfRows()));
-                cellQuantity.setCellValue(value);
-                printLog("\t상품 : " + key + ", 재고 : " + value + "로 변경되었습니다.");
-            } else {
-                copyRow(sheet, row,
+            if (value == null) {
+                copyRow(targetSheet, row,
                         unregisteredWorkbook, unregSheet.createRow(unregSheet.getPhysicalNumberOfRows()));
+            } else if (value.equals(beforeValue)) {
+                printLog("\t상품 : " + key + ", 재고 : " + value + "로 변동이 없습니다.");
+
+                for (int columnIndex = 0; columnIndex < row.getLastCellNum(); columnIndex++) {
+                    Cell aCell = row.getCell(columnIndex);
+
+                    if (aCell != null) {
+                        CellStyle style = aCell.getCellStyle();
+                        style.setFillForegroundColor(IndexedColors.GREEN.getIndex());
+                        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                    }
+                }
+            } else {
+                copyRow(targetSheet, row,
+                        newWorkbook, newSheet.createRow(newSheet.getPhysicalNumberOfRows()));
+                newSheet.getRow(newSheet.getLastRowNum()).getCell(4).setCellValue(value);
+                printLog("\t상품 : " + key + ", 재고 : " + value + "로 변경되었습니다.");
             }
         }
 
         Calendar calendar = Calendar.getInstance();
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMdd_hhmmss_");
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss_");
         String prefix = simpleDateFormat.format(calendar.getTime());
         String savePath;
 
@@ -356,6 +353,8 @@ public class ExcelManager {
     private String extractStringValue(Cell cell) {
         String value = null;
 
+        if (cell == null) return null;
+
         switch (cell.getCellTypeEnum()) {
             case FORMULA:
                 value = cell.getCellFormula();
@@ -374,6 +373,6 @@ public class ExcelManager {
                 break;
         }
 
-        return value;
+        return value != null ? value.trim() : null;
     }
 }
