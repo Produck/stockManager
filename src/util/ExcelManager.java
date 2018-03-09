@@ -13,11 +13,13 @@ import java.math.BigDecimal;
 import java.nio.file.NoSuchFileException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class ExcelManager {
     private final int STOCK_CODE_COLUMN = 1;
     private final int STOCK_NAME_COLUMN = 2;
     private final int STOCK_QUANTITY_COLUMN = 4;
+    private final int STOCK_QUANTITY_COLUMN2 = 9;
     private final int ORIGINAL_CODE_COLUMN = 0;
     private final int ORIGINAL_QUANTITY_COLUMN = 7;
     private final int ORIGINAL_NAME_COLUMN = 1;
@@ -82,9 +84,14 @@ public class ExcelManager {
         read(codeFilePath, (row, sheet) -> {
             if (row != null) {
                 int cells = row.getPhysicalNumberOfCells();
+                String code = extractStringValue(row.getCell(ORIGINAL_CODE_COLUMN));
+                if (Pattern.matches("^(9){10,}", code)) {
+                    printLog("\t" + code + " 해당 코드는 무시 되었습니다.");
+                    return;
+                }
                 //셀의 수
                 if (cells >= 2) {
-                    resultCodeMap.put(extractStringValue(row.getCell(ORIGINAL_NAME_COLUMN)), extractStringValue(row.getCell(ORIGINAL_CODE_COLUMN)));
+                    resultCodeMap.put(extractStringValue(row.getCell(ORIGINAL_NAME_COLUMN)), code);
                 }
             }
         });
@@ -255,8 +262,10 @@ public class ExcelManager {
             if (value == null) {
                 copyRow(targetSheet, row,
                         unregisteredWorkbook, unregSheet.createRow(unregSheet.getPhysicalNumberOfRows()));
+            } else if (Pattern.matches("^(9){10,}", key)) {
+                printLog(String.format("\t%5d 상품 : " + key + ", 해당 코드는 무시 되었습니다..", rowIndex));
             } else if (value.equals(beforeValue)) {
-                printLog("\t상품 : " + key + ", 재고 : " + value + "로 변동이 없습니다.");
+                printLog(String.format("\t%5d 상품 : " + key + ", 재고 : " + value + "로 변동이 없습니다.", rowIndex));
 
                 CellStyle style = cellProductCode.getCellStyle();
 
@@ -271,7 +280,8 @@ public class ExcelManager {
                 copyRow(targetSheet, row,
                         newWorkbook, newSheet.createRow(newSheet.getPhysicalNumberOfRows()));
                 newSheet.getRow(newSheet.getLastRowNum()).getCell(STOCK_QUANTITY_COLUMN).setCellValue(value);
-                printLog("\t상품 : " + key + ", 재고 : " + value + "로 변경되었습니다.");
+                newSheet.getRow(newSheet.getLastRowNum()).getCell(STOCK_QUANTITY_COLUMN2).setCellValue(value);
+                printLog(String.format("\t%5d 상품 : " + key + ", 재고 : " + value + "로 변경되었습니다.", rowIndex));
             }
 
             codeToQuantity.remove(key);
