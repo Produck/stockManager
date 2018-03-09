@@ -1,30 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.text.*?>
 <?import javafx.scene.control.*?>
-<?import java.lang.*?>
-<?import javafx.scene.layout.*?>
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.Label?>
-
-<Pane fx:id="mainPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="500.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="core.MainController">
-   <children>
-       <Button fx:id="btnStockListChooser" layoutX="168.0" layoutY="451.0" mnemonicParsing="false" prefHeight="28.0" prefWidth="74.0" text="선택" />
-       <TextField fx:id="txtStockFilePath" editable="false" layoutX="14.0" layoutY="451.0" prefHeight="28.0" prefWidth="148.0" />
-       <TextArea fx:id="txtAreaLog" editable="false" layoutX="14.0" layoutY="21.0" prefHeight="332.0" prefWidth="571.0" />
-       <Button fx:id="btnOriginChooser" layoutX="411.0" layoutY="451.0" mnemonicParsing="false" prefHeight="28.0" prefWidth="74.0" text="선택" />
-       <TextField fx:id="txtOriginFilePath" editable="false" layoutX="253.0" layoutY="451.0" prefHeight="28.0" prefWidth="148.0" />
-      <Button fx:id="btnCodeGeneration" layoutX="500.0" layoutY="417.0" mnemonicParsing="false" prefHeight="28.0" prefWidth="86.0" text="코드생성" />
-       <Button fx:id="btnConfirm" layoutX="500.0" layoutY="451.0" mnemonicParsing="false" prefHeight="28.0" prefWidth="86.0" text="재고조사" />
-      <Label layoutX="51.0" layoutY="422.0" text="쇼핑몰 재고" />
-      <Label layoutX="285.0" layoutY="422.0" text="재고현황원본" />
-      <ProgressBar fx:id="progressbar" layoutX="15.0" layoutY="385.0" prefHeight="21.0" prefWidth="571.0" progress="0.32" style="-fx-accent: green;" />
-      <Label fx:id="progressText" layoutX="15.0" layoutY="359.0" text="진행도">
-         <font>
-            <Font name="Consolas Bold" size="19.0" />
-         </font>
-      </Label>
-   </children>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.text.Font?>
+<Pane fx:id="mainPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity"
+      prefHeight="500.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="core.MainController">
+    <Button fx:id="btnStockListChooser" layoutX="168.0" layoutY="451.0" mnemonicParsing="false" prefHeight="28.0"
+            prefWidth="74.0" text="선택"/>
+    <TextField fx:id="txtStockFilePath" editable="false" layoutX="14.0" layoutY="451.0" prefHeight="28.0"
+               prefWidth="148.0"/>
+    <TextArea fx:id="txtAreaLog" editable="false" layoutX="14.0" layoutY="21.0" prefHeight="332.0" prefWidth="571.0"/>
+    <Button fx:id="btnOriginChooser" layoutX="411.0" layoutY="451.0" mnemonicParsing="false" prefHeight="28.0"
+            prefWidth="74.0" text="선택"/>
+    <TextField fx:id="txtOriginFilePath" editable="false" layoutX="253.0" layoutY="451.0" prefHeight="28.0"
+               prefWidth="148.0"/>
+    <Button fx:id="btnCodeGeneration" layoutX="500.0" layoutY="415.0" mnemonicParsing="false" prefHeight="28.0"
+            prefWidth="86.0" text="코드생성"/>
+    <Button fx:id="btnConfirm" layoutX="500.0" layoutY="445.0" mnemonicParsing="false" prefHeight="28.0"
+            prefWidth="86.0" text="재고조사"/>
+    <Button fx:id="btnUnregistered" layoutX="500.0" layoutY="475.0" mnemonicParsing="false" prefHeight="28.0"
+            prefWidth="86.0" text="미등록조사"/>
+    <Label layoutX="51.0" layoutY="422.0" text="쇼핑몰 재고"/>
+    <Label layoutX="285.0" layoutY="422.0" text="재고현황원본"/>
+    <ProgressBar fx:id="progressbar" layoutX="15.0" layoutY="385.0" prefHeight="21.0" prefWidth="571.0" progress="0.32"
+                 style="-fx-accent: green;"/>
+    <Label fx:id="progressText" layoutX="15.0" layoutY="359.0" text="진행도">
+        <font>
+          <Font name="Consolas Bold" size="19.0"/>
+        </font>
+    </Label>
 </Pane>

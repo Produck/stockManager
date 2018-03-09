@@ -31,9 +31,11 @@ public class Main extends Application {
         if (Platform.isFxApplicationThread()) {
             showErrorDialog(e);
         } else {
-            System.err.println("An unexpected error occurred in "+t);
-
+            System.err.println("An unexpected error occurred in " + t);
+            System.exit(0);
         }
+
+        e.printStackTrace();
     }
 
     private static void showErrorDialog(Throwable e) {

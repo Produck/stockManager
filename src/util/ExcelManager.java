@@ -273,6 +273,8 @@ public class ExcelManager {
                 newSheet.getRow(newSheet.getLastRowNum()).getCell(STOCK_QUANTITY_COLUMN).setCellValue(value);
                 printLog("\t상품 : " + key + ", 재고 : " + value + "로 변경되었습니다.");
             }
+
+            codeToQuantity.remove(key);
         }
 
         Calendar calendar = Calendar.getInstance();
@@ -393,5 +395,76 @@ public class ExcelManager {
         }
 
         return value != null ? value.trim() : null;
+    }
+
+    public Map<String, String> getProductNamesFrom(String target) throws Exception {
+
+        Map<String, String> resultCodeMap = new HashMap<>();
+
+        read(target, (row, sheet) -> {
+            if (row != null) {
+                int cells = row.getPhysicalNumberOfCells();
+                //셀의 수
+                if (cells >= 2) {
+                    resultCodeMap.put(extractStringValue(row.getCell(STOCK_CODE_COLUMN)), extractStringValue(row.getCell(STOCK_NAME_COLUMN)));
+                }
+            }
+        });
+
+        return resultCodeMap;
+    }
+
+    public void writeUnregisteredStock(Map<String, String> productNames, String target, File fileToSave) throws Exception {
+
+        printLog("엑셀 파일을 읽는 중 입니다..." + target);
+
+        //파일을 읽기위해 엑셀파일을 가져온다
+        FileInputStream fis = new FileInputStream(target);
+        Workbook workbook = getExtension(target).equals("xls") ? new HSSFWorkbook(fis) : new XSSFWorkbook(fis);
+
+        CellStyle styleOfColor = workbook.createCellStyle();
+
+        // 정렬
+        styleOfColor.setAlignment(HorizontalAlignment.CENTER); //가운데 정렬
+        // 배경색
+        styleOfColor.setFillForegroundColor(IndexedColors.RED.getIndex());
+        styleOfColor.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        int rowIndex;
+
+        printLog("\t시트를 읽습니다.");
+
+        Workbook newWorkbook = new XSSFWorkbook();
+        Sheet newSheet = newWorkbook.createSheet();
+
+        //시트 수 (첫번째에만 존재하므로 0을 준다)
+        //만약 각 시트를 읽기위해서는 FOR문을 한번더 돌려준다
+        Sheet sheet = workbook.getSheetAt(0);
+
+        copyRow(sheet, sheet.getRow(0),
+                newWorkbook, newSheet.createRow(newSheet.getPhysicalNumberOfRows()));
+
+        //행의 수
+        int rows = sheet.getPhysicalNumberOfRows();
+        for (rowIndex = 1; rowIndex < rows; rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            Cell cellProductName = row.getCell(ORIGINAL_CODE_COLUMN);
+
+            if (productNames.get(extractStringValue(cellProductName)) == null) {
+                copyRow(sheet, row,
+                        newWorkbook, newSheet.createRow(newSheet.getPhysicalNumberOfRows()));
+            }
+        }
+
+        try {
+            FileOutputStream fileOutputStream = new FileOutputStream(fileToSave);
+            newWorkbook.write(fileOutputStream);
+            fileOutputStream.close();
+            printLog(fileToSave.getAbsolutePath() + " 성공적으로 미등록 목록을 조사했습니다...");
+        } catch (Exception e) {
+            printLog(e.getLocalizedMessage());
+            printLog("\t미등록 목록 엑셀 쓰기에 실패했습니다...");
+        }
+
     }
 }
